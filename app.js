@@ -6,6 +6,13 @@ class DiagramBuilder {
     this.diagramType = 'architecture';
     this.format = 'graphviz';
     this.zoom = 1;
+    this.panX = 0;
+    this.panY = 0;
+    this.isPanning = false;
+    this.startX = 0;
+    this.startY = 0;
+    this.gridEnabled = false;
+    this.isFullscreen = false;
 
     this.init();
   }
@@ -66,12 +73,8 @@ class DiagramBuilder {
     document.querySelectorAll('.right-panel-tab').forEach(tab => {
       tab.addEventListener('click', () => {
         const view = tab.dataset.view;
-
-        // Update active tab
         document.querySelectorAll('.right-panel-tab').forEach(t => t.classList.remove('active'));
         tab.classList.add('active');
-
-        // Update active view
         document.querySelectorAll('.right-panel-view').forEach(v => v.classList.remove('active'));
         document.querySelector(`.right-panel-view[data-view="${view}"]`).classList.add('active');
       });
@@ -111,12 +114,58 @@ class DiagramBuilder {
       this.exportDiagram();
     });
 
-    // Zoom controls
-    document.getElementById('zoomIn').addEventListener('click', () => this.adjustZoom(0.1));
-    document.getElementById('zoomOut').addEventListener('click', () => this.adjustZoom(-0.1));
-    document.getElementById('resetZoom').addEventListener('click', () => {
-      this.zoom = 1;
+    // Enhanced Zoom Controls
+    document.getElementById('zoomIn').addEventListener('click', () => this.adjustZoom(10));
+    document.getElementById('zoomOut').addEventListener('click', () => this.adjustZoom(-10));
+    document.getElementById('resetZoom').addEventListener('click', () => this.resetZoom());
+
+    const zoomSlider = document.getElementById('zoomSlider');
+    zoomSlider.addEventListener('input', (e) => {
+      this.zoom = parseInt(e.target.value) / 100;
       this.updatePreviewZoom();
+    });
+
+    // Fit to Screen
+    document.getElementById('fitScreen').addEventListener('click', () => this.fitToScreen());
+
+    // Toggle Grid
+    document.getElementById('toggleGrid').addEventListener('click', () => this.toggleGrid());
+
+    // Collapse Code Panel
+    document.getElementById('collapseCode').addEventListener('click', () => this.toggleCodePanel());
+
+    // Full Screen
+    document.getElementById('fullScreen').addEventListener('click', () => this.toggleFullScreen());
+
+    // Pan functionality
+    const previewWrapper = document.getElementById('previewWrapper');
+    previewWrapper.addEventListener('mousedown', (e) => this.startPan(e));
+    previewWrapper.addEventListener('mousemove', (e) => this.pan(e));
+    previewWrapper.addEventListener('mouseup', () => this.endPan());
+    previewWrapper.addEventListener('mouseleave', () => this.endPan());
+
+    // Mouse wheel zoom
+    const preview = document.getElementById('preview');
+    preview.addEventListener('wheel', (e) => this.handleWheelZoom(e), { passive: false });
+
+    // Context menu
+    preview.addEventListener('contextmenu', (e) => this.showContextMenu(e));
+    document.addEventListener('click', () => this.hideContextMenu());
+
+    // Context menu actions
+    document.querySelectorAll('.context-menu-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.stopPropagation();
+        this.handleContextMenuAction(item.dataset.action);
+      });
+    });
+
+    // Keyboard shortcuts
+    document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+
+    // Shortcuts overlay
+    document.getElementById('closeShortcuts').addEventListener('click', () => {
+      document.getElementById('shortcutsOverlay').classList.remove('active');
     });
 
     // AI prompt buttons
@@ -135,6 +184,9 @@ class DiagramBuilder {
         this.clearPreview();
       }
     });
+
+    // Draw grid on canvas
+    this.setupGridCanvas();
   }
 
   loadTemplate(type) {
@@ -388,8 +440,13 @@ classDiagram
       return;
     }
 
-    const preview = document.getElementById('preview');
-    preview.innerHTML = '<div class="preview-placeholder"><p>⏳ Rendering diagram...</p></div>';
+    const wrapper = document.getElementById('previewWrapper');
+    wrapper.innerHTML = `
+      <div class="preview-placeholder">
+        <div class="loading-spinner"></div>
+        <p style="margin-top: 16px;">Rendering diagram...</p>
+      </div>
+    `;
 
     try {
       const response = await fetch('http://localhost:8000/render', {
@@ -404,24 +461,38 @@ classDiagram
 
       if (response.ok) {
         const data = await response.json();
-        preview.innerHTML = `<img src="${data.image}" alt="Diagram" style="max-width: 100%; height: auto; transform: scale(${this.zoom});">`;
+        wrapper.innerHTML = `<img src="${data.image}" alt="Diagram" class="fade-in">`;
+        wrapper.classList.add('pannable');
+
+        // Wait for image to load, then fit to screen
+        const img = wrapper.querySelector('img');
+        img.onload = () => {
+          setTimeout(() => this.fitToScreen(), 100);
+        };
+
+        this.updatePreviewZoom();
       } else {
         throw new Error('Failed to render diagram');
       }
     } catch (error) {
       console.error('Render error:', error);
-      preview.innerHTML = `
+      wrapper.innerHTML = `
         <div class="preview-placeholder">
-          <p>⚠ Preview not available in offline mode</p>
-          <p style="margin-top: 8px; font-size: 12px;">Start the Python backend to render diagrams:</p>
+          <svg width="48" height="48" viewBox="0 0 16 16" fill="currentColor" style="opacity: 0.3;">
+            <path d="M8.982 1.566a1.13 1.13 0 0 0-1.96 0L.165 13.233c-.457.778.091 1.767.98 1.767h13.713c.889 0 1.438-.99.98-1.767L8.982 1.566zM8 5c.535 0 .954.462.9.995l-.35 3.507a.552.552 0 0 1-1.1 0L7.1 5.995A.905.905 0 0 1 8 5zm.002 6a1 1 0 1 1 0 2 1 1 0 0 1 0-2z"/>
+          </svg>
+          <p style="margin-top: 12px;">⚠ Preview not available in offline mode</p>
+          <p style="margin-top: 8px; font-size: 12px; color: var(--text-tertiary);">Start the Python backend to render diagrams:</p>
           <pre style="margin-top: 16px; text-align: left; padding: 12px; background: var(--bg-tertiary); border-radius: 6px; font-size: 11px; max-width: 400px;">python renderer.py</pre>
         </div>
       `;
+      wrapper.classList.remove('pannable');
     }
   }
 
   clearPreview() {
-    document.getElementById('preview').innerHTML = `
+    const wrapper = document.getElementById('previewWrapper');
+    wrapper.innerHTML = `
       <div class="preview-placeholder">
         <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor">
           <rect x="8" y="8" width="48" height="48" rx="4" stroke-width="2"/>
@@ -430,17 +501,280 @@ classDiagram
         <p>Generate or paste code to see preview</p>
       </div>
     `;
+    wrapper.classList.remove('pannable');
   }
 
   adjustZoom(delta) {
-    this.zoom = Math.max(0.1, Math.min(3, this.zoom + delta));
+    const newZoom = Math.max(10, Math.min(200, (this.zoom * 100) + delta));
+    this.zoom = newZoom / 100;
+    document.getElementById('zoomSlider').value = newZoom;
     this.updatePreviewZoom();
   }
 
   updatePreviewZoom() {
-    const img = document.querySelector('#preview img');
+    const zoomPercent = document.getElementById('zoomPercent');
+    zoomPercent.textContent = `${Math.round(this.zoom * 100)}%`;
+
+    const img = document.querySelector('#previewWrapper img');
     if (img) {
-      img.style.transform = `scale(${this.zoom})`;
+      img.style.transform = `scale(${this.zoom}) translate(${this.panX}px, ${this.panY}px)`;
+    }
+  }
+
+  resetZoom() {
+    this.zoom = 1;
+    this.panX = 0;
+    this.panY = 0;
+    document.getElementById('zoomSlider').value = 100;
+    this.updatePreviewZoom();
+  }
+
+  fitToScreen() {
+    const wrapper = document.getElementById('previewWrapper');
+    const img = document.querySelector('#previewWrapper img');
+    if (!img) return;
+
+    const wrapperWidth = wrapper.clientWidth;
+    const wrapperHeight = wrapper.clientHeight;
+    const imgWidth = img.naturalWidth;
+    const imgHeight = img.naturalHeight;
+
+    const scaleX = wrapperWidth / imgWidth;
+    const scaleY = wrapperHeight / imgHeight;
+    const scale = Math.min(scaleX, scaleY, 2) * 0.9;
+
+    this.zoom = scale;
+    this.panX = 0;
+    this.panY = 0;
+    document.getElementById('zoomSlider').value = Math.round(scale * 100);
+    this.updatePreviewZoom();
+  }
+
+  handleWheelZoom(e) {
+    if (!e.ctrlKey && !e.metaKey) return;
+    e.preventDefault();
+
+    const delta = e.deltaY > 0 ? -10 : 10;
+    this.adjustZoom(delta);
+  }
+
+  // Pan functionality
+  startPan(e) {
+    if (e.button !== 0) return; // Only left mouse button
+    const img = document.querySelector('#previewWrapper img');
+    if (!img) return;
+
+    this.isPanning = true;
+    this.startX = e.clientX - this.panX;
+    this.startY = e.clientY - this.panY;
+    document.getElementById('previewWrapper').classList.add('panning');
+  }
+
+  pan(e) {
+    if (!this.isPanning) return;
+    e.preventDefault();
+
+    this.panX = e.clientX - this.startX;
+    this.panY = e.clientY - this.startY;
+    this.updatePreviewZoom();
+  }
+
+  endPan() {
+    this.isPanning = false;
+    document.getElementById('previewWrapper').classList.remove('panning');
+  }
+
+  // Grid overlay
+  setupGridCanvas() {
+    const canvas = document.getElementById('gridCanvas');
+    const resizeCanvas = () => {
+      const preview = document.getElementById('preview');
+      canvas.width = preview.clientWidth;
+      canvas.height = preview.clientHeight;
+      if (this.gridEnabled) this.drawGrid();
+    };
+
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+  }
+
+  toggleGrid() {
+    this.gridEnabled = !this.gridEnabled;
+    const canvas = document.getElementById('gridCanvas');
+    canvas.classList.toggle('active', this.gridEnabled);
+    if (this.gridEnabled) {
+      this.drawGrid();
+    }
+  }
+
+  drawGrid() {
+    const canvas = document.getElementById('gridCanvas');
+    const ctx = canvas.getContext('2d');
+    const gridSize = 20;
+
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.strokeStyle = 'rgba(94, 106, 210, 0.2)';
+    ctx.lineWidth = 0.5;
+
+    // Vertical lines
+    for (let x = 0; x < canvas.width; x += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(x, 0);
+      ctx.lineTo(x, canvas.height);
+      ctx.stroke();
+    }
+
+    // Horizontal lines
+    for (let y = 0; y < canvas.height; y += gridSize) {
+      ctx.beginPath();
+      ctx.moveTo(0, y);
+      ctx.lineTo(canvas.width, y);
+      ctx.stroke();
+    }
+  }
+
+  // Collapsible panel
+  toggleCodePanel() {
+    const editorPanel = document.querySelector('.editor-panel');
+    editorPanel.classList.toggle('collapsed');
+
+    const icon = document.querySelector('#collapseCode svg path');
+    if (editorPanel.classList.contains('collapsed')) {
+      icon.setAttribute('d', 'M4.646 1.646a.5.5 0 01.708 0l6 6a.5.5 0 010 .708l-6 6a.5.5 0 01-.708-.708L10.293 8 4.646 2.354a.5.5 0 010-.708z');
+    } else {
+      icon.setAttribute('d', 'M11.354 1.646a.5.5 0 010 .708L5.707 8l5.647 5.646a.5.5 0 01-.708.708l-6-6a.5.5 0 010-.708l6-6a.5.5 0 01.708 0z');
+    }
+  }
+
+  // Full screen
+  toggleFullScreen() {
+    this.isFullscreen = !this.isFullscreen;
+    document.body.classList.toggle('fullscreen', this.isFullscreen);
+
+    if (!this.isFullscreen) {
+      // Recalculate fit when exiting fullscreen
+      setTimeout(() => this.fitToScreen(), 300);
+    }
+  }
+
+  // Context menu
+  showContextMenu(e) {
+    e.preventDefault();
+    const menu = document.getElementById('contextMenu');
+    menu.style.left = `${e.clientX}px`;
+    menu.style.top = `${e.clientY}px`;
+    menu.classList.add('active');
+  }
+
+  hideContextMenu() {
+    document.getElementById('contextMenu').classList.remove('active');
+  }
+
+  async handleContextMenuAction(action) {
+    this.hideContextMenu();
+
+    switch (action) {
+      case 'copy':
+        await this.copyImageToClipboard();
+        break;
+      case 'download-png':
+        await this.exportDiagram('png');
+        break;
+      case 'download-svg':
+        await this.exportDiagram('svg');
+        break;
+      case 'reset-view':
+        this.resetZoom();
+        break;
+      case 'copy-code':
+        await this.copyCodeToClipboard();
+        break;
+    }
+  }
+
+  async copyImageToClipboard() {
+    const img = document.querySelector('#previewWrapper img');
+    if (!img) return;
+
+    try {
+      const blob = await fetch(img.src).then(r => r.blob());
+      await navigator.clipboard.write([
+        new ClipboardItem({ 'image/png': blob })
+      ]);
+      this.addTerminalMessage('system', '✓ Image copied to clipboard');
+    } catch (error) {
+      console.error('Copy failed:', error);
+      this.addTerminalMessage('system', '✗ Failed to copy image');
+    }
+  }
+
+  async copyCodeToClipboard() {
+    const code = document.getElementById('codeEditor').value;
+    try {
+      await navigator.clipboard.writeText(code);
+      this.addTerminalMessage('system', '✓ Code copied to clipboard');
+    } catch (error) {
+      console.error('Copy failed:', error);
+      this.addTerminalMessage('system', '✗ Failed to copy code');
+    }
+  }
+
+  // Keyboard shortcuts
+  handleKeyboardShortcuts(e) {
+    const isMod = e.ctrlKey || e.metaKey;
+
+    // Prevent default for our shortcuts
+    if (isMod && ['=', '-', '0', 'Enter', 's'].includes(e.key)) {
+      e.preventDefault();
+    }
+
+    // Zoom shortcuts
+    if (isMod && e.key === '=') {
+      this.adjustZoom(10);
+    } else if (isMod && e.key === '-') {
+      this.adjustZoom(-10);
+    } else if (isMod && e.key === '0') {
+      this.resetZoom();
+    }
+
+    // Fit to screen
+    else if (e.key === 'f' || e.key === 'F') {
+      if (!document.activeElement.matches('input, textarea')) {
+        e.preventDefault();
+        this.fitToScreen();
+      }
+    }
+
+    // Toggle grid
+    else if (e.key === 'g' || e.key === 'G') {
+      if (!document.activeElement.matches('input, textarea')) {
+        e.preventDefault();
+        this.toggleGrid();
+      }
+    }
+
+    // Show shortcuts
+    else if (e.key === '?' && !document.activeElement.matches('input, textarea')) {
+      e.preventDefault();
+      document.getElementById('shortcutsOverlay').classList.add('active');
+    }
+
+    // Exit fullscreen
+    else if (e.key === 'Escape') {
+      if (this.isFullscreen) {
+        this.toggleFullScreen();
+      }
+      document.getElementById('shortcutsOverlay').classList.remove('active');
+    }
+
+    // Render diagram
+    else if (isMod && e.key === 'Enter') {
+      this.renderDiagram();
+    }
+
+    // Export
+    else if (isMod && e.key === 's') {
+      this.exportDiagram();
     }
   }
 

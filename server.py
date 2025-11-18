@@ -1,24 +1,21 @@
 #!/usr/bin/env python3
 """
 Kre8 Diagram Builder - WebSocket Server for Claude Code Integration
+This server acts as a relay between the web UI and Claude Code terminal via SQLite database
 """
 
 import asyncio
 import json
 import websockets
-from anthropic import Anthropic
-import os
+import sys
+from datetime import datetime
+from database import DiagramDatabase
 
 class ClaudeCodeServer:
     def __init__(self):
-        self.api_key = os.getenv('ANTHROPIC_API_KEY')
-        if not self.api_key:
-            print("Warning: ANTHROPIC_API_KEY not found in environment")
-            self.client = None
-        else:
-            self.client = Anthropic(api_key=self.api_key)
-
         self.connected_clients = set()
+        self.db = DiagramDatabase()
+        print("✓ Database initialized")
 
     async def handle_client(self, websocket, path):
         """Handle WebSocket client connection"""
@@ -44,16 +41,35 @@ class ClaudeCodeServer:
         try:
             data = json.loads(message)
             message_type = data.get('type')
+            user_message = data.get('message', '')
+            context = data.get('context', {})
 
-            if message_type == 'generate':
-                await self.generate_diagram(websocket, data)
-            elif message_type == 'modify':
-                await self.modify_diagram(websocket, data)
-            else:
-                await websocket.send(json.dumps({
-                    'type': 'error',
-                    'message': f'Unknown message type: {message_type}'
-                }))
+            # Save request to database
+            request_id = self.db.add_request(
+                message=user_message,
+                diagram_type=context.get('diagramType', 'architecture'),
+                format_type=context.get('format', 'graphviz'),
+                current_code=context.get('currentCode', '')
+            )
+
+            # Print the user's message to terminal for Claude Code to see
+            print("\n" + "="*60)
+            print(f"📥 NEW REQUEST #{request_id} from Web UI:")
+            print(f"   Message: {user_message}")
+            print(f"   Diagram Type: {context.get('diagramType', 'architecture')}")
+            print(f"   Format: {context.get('format', 'graphviz')}")
+            print(f"   Saved to database with ID: {request_id}")
+            print("="*60)
+            print(f"\n💭 Run: python respond.py {request_id} to respond\n")
+
+            # Send acknowledgment to web UI
+            await websocket.send(json.dumps({
+                'type': 'message',
+                'content': f'⏳ Request #{request_id} saved. Waiting for Claude Code response...'
+            }))
+
+            # Start polling for response
+            asyncio.create_task(self.poll_for_response(websocket, request_id))
 
         except Exception as e:
             print(f"Error processing message: {e}")
@@ -62,83 +78,39 @@ class ClaudeCodeServer:
                 'message': str(e)
             }))
 
-    async def generate_diagram(self, websocket, data):
-        """Generate diagram code using Claude"""
-        user_message = data.get('message', '')
-        context = data.get('context', {})
-        diagram_type = context.get('diagramType', 'architecture')
-        format_type = context.get('format', 'graphviz')
-        current_code = context.get('currentCode', '')
+    async def poll_for_response(self, websocket, request_id, timeout=300):
+        """Poll database for response to the request"""
+        start_time = asyncio.get_event_loop().time()
 
-        if not self.client:
-            await websocket.send(json.dumps({
-                'type': 'error',
-                'message': 'ANTHROPIC_API_KEY not configured'
-            }))
-            return
+        while True:
+            # Check if timeout reached (5 minutes)
+            if asyncio.get_event_loop().time() - start_time > timeout:
+                await websocket.send(json.dumps({
+                    'type': 'error',
+                    'message': f'Request #{request_id} timed out after {timeout}s'
+                }))
+                break
 
-        # Build Claude prompt
-        system_prompt = f"""You are an expert diagram generator. Generate {format_type} code for diagrams.
+            # Check for response in database
+            response = self.db.get_response(request_id)
 
-Rules:
-- Generate clean, properly formatted {format_type} code
-- Use modern best practices
-- Include colors and styling for visual appeal
-- Make diagrams clear and easy to understand
-- For dark themes, use colors like #5E6AD2, #26B5CE, #00D084
-- Return ONLY the diagram code, no explanations"""
+            if response:
+                # Send diagram code to client
+                await websocket.send(json.dumps({
+                    'type': 'diagram_code',
+                    'code': response['diagram_code']
+                }))
+                print(f"✓ Sent response for request #{request_id} to web UI")
+                break
 
-        user_prompt = f"""Generate a {diagram_type} diagram using {format_type}.
-
-User request: {user_message}
-
-Current code (if modifying):
-{current_code if current_code else 'None - create new diagram'}
-
-Generate the complete diagram code."""
-
-        try:
-            # Call Claude API
-            message = self.client.messages.create(
-                model="claude-sonnet-4-5-20250929",
-                max_tokens=2000,
-                system=system_prompt,
-                messages=[{
-                    "role": "user",
-                    "content": user_prompt
-                }]
-            )
-
-            # Extract diagram code
-            diagram_code = message.content[0].text.strip()
-
-            # Remove markdown code blocks if present
-            if diagram_code.startswith('```'):
-                lines = diagram_code.split('\n')
-                diagram_code = '\n'.join(lines[1:-1])
-
-            # Send response
-            await websocket.send(json.dumps({
-                'type': 'diagram_code',
-                'code': diagram_code
-            }))
-
-        except Exception as e:
-            print(f"Claude API error: {e}")
-            await websocket.send(json.dumps({
-                'type': 'error',
-                'message': f'Failed to generate diagram: {str(e)}'
-            }))
-
-    async def modify_diagram(self, websocket, data):
-        """Modify existing diagram code"""
-        await self.generate_diagram(websocket, data)
+            # Wait before polling again
+            await asyncio.sleep(1)
 
     async def start_server(self, host='localhost', port=8765):
         """Start the WebSocket server"""
         print(f"🚀 Starting Kre8 Diagram Builder WebSocket Server...")
         print(f"📡 Listening on ws://{host}:{port}")
-        print(f"🔑 Claude API Key: {'✓ Configured' if self.api_key else '✗ Not configured'}")
+        print(f"💾 Database: kre8_diagrams.db")
         print(f"\nWaiting for connections...\n")
 
         async with websockets.serve(self.handle_client, host, port):

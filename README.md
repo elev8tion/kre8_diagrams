@@ -87,7 +87,7 @@ A sleek, dark-themed diagram builder with WebSocket terminal integration for Cla
 
 ### Running the Application
 
-You need to start **two servers**:
+You need to start **three servers**:
 
 #### 1. Start the Diagram Renderer (Backend)
 ```bash
@@ -99,7 +99,7 @@ This starts on `http://localhost:8000`
 ```bash
 python server.py
 ```
-This starts on `ws://localhost:8765`
+This starts on `ws://localhost:8765` and creates `kre8_diagrams.db`
 
 #### 3. Open the Web Interface
 ```bash
@@ -115,6 +115,37 @@ npx http-server -p 3000
 
 # Or PHP
 php -S localhost:3000
+```
+
+### How Claude Code Integration Works
+
+The system uses a **SQLite database** for communication between the web UI and Claude Code:
+
+1. **User types in web UI terminal** → Request saved to `kre8_diagrams.db`
+2. **Server prints request** to terminal for Claude Code to see
+3. **Claude Code responds** using the `respond.py` helper script
+4. **Web UI receives** the diagram code automatically
+
+#### Responding to Requests
+
+When a request comes in, you'll see:
+```
+📥 NEW REQUEST #1 from Web UI:
+   Message: Generate a network diagram
+   Diagram Type: architecture
+   Format: graphviz
+```
+
+To respond:
+```bash
+# View all pending requests
+python respond.py
+
+# View specific request details
+python respond.py 1
+
+# Send response
+python respond.py 1 'digraph { A -> B -> C; }'
 ```
 
 ## 📖 Usage

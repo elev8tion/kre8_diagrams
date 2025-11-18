@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kre8 Diagram Builder</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="app">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
+                    <path d="M16 4L28 10V22L16 28L4 22V10L16 4Z" stroke="url(#gradient)" stroke-width="2"/>
+                    <defs>
+                        <linearGradient id="gradient" x1="4" y1="4" x2="28" y2="28">
+                            <stop offset="0%" stop-color="#5E6AD2"/>
+                            <stop offset="100%" stop-color="#26B5CE"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span>Kre8 Diagrams</span>
+            </div>
+
+            <nav class="nav">
+                <div class="nav-section">
+                    <div class="nav-label">Diagram Types</div>
+                    <button class="nav-item active" data-type="architecture">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M2 2h4v4H2V2zm0 6h4v6H2V8zm6-6h6v6H8V2zm0 8h6v4H8v-4z"/>
+                        </svg>
+                        Architecture
+                    </button>
+                    <button class="nav-item" data-type="flowchart">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 2a1 1 0 011 1v2h3a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1V6a1 1 0 011-1h3V3a1 1 0 011-1z"/>
+                        </svg>
+                        Flowchart
+                    </button>
+                    <button class="nav-item" data-type="sequence">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M2 2h3v3H2V2zm0 5h3v3H2V7zm0 5h3v3H2v-3zm9-10h3v3h-3V2zm0 5h3v3h-3V7z"/>
+                        </svg>
+                        Sequence
+                    </button>
+                    <button class="nav-item" data-type="erd">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M4 2a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2V4a2 2 0 00-2-2H4zm0 2h8v8H4V4z"/>
+                        </svg>
+                        ERD
+                    </button>
+                    <button class="nav-item" data-type="network">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 1a2 2 0 100 4 2 2 0 000-4zM3 6a2 2 0 100 4 2 2 0 000-4zm10 0a2 2 0 100 4 2 2 0 000-4zM8 11a2 2 0 100 4 2 2 0 000-4z"/>
+                        </svg>
+                        Network
+                    </button>
+                    <button class="nav-item" data-type="uml">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M2 2h5v5H2V2zm7 0h5v5H9V2zM2 9h5v5H2V9z"/>
+                        </svg>
+                        UML
+                    </button>
+                </div>
+            </nav>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main">
+            <!-- Toolbar -->
+            <div class="toolbar">
+                <div class="toolbar-left">
+                    <button class="btn btn-primary" id="newDiagram">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 2v12M2 8h12" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        New
+                    </button>
+                    <button class="btn" id="exportBtn">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M8 2v8m0 0l3-3m-3 3L5 7m9 7H2"/>
+                        </svg>
+                        Export
+                    </button>
+                </div>
+                <div class="toolbar-right">
+                    <button class="btn icon-btn" id="terminalToggle">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                            <path d="M2 3a1 1 0 011-1h10a1 1 0 011 1v10a1 1 0 01-1 1H3a1 1 0 01-1-1V3zm3 2l3 3-3 3"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Canvas Area -->
+            <div class="canvas-container">
+                <div class="canvas-header">
+                    <input type="text" class="diagram-title" placeholder="Untitled Diagram" id="diagramTitle">
+                    <div class="canvas-actions">
+                        <select class="select" id="formatSelect">
+                            <option value="graphviz">Graphviz (DOT)</option>
+                            <option value="mermaid">Mermaid</option>
+                            <option value="d2">D2</option>
+                            <option value="plantuml">PlantUML</option>
+                            <option value="drawio">Draw.io XML</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="canvas-split">
+                    <!-- Code Editor -->
+                    <div class="editor-panel">
+                        <div class="panel-header">
+                            <span>Code</span>
+                            <button class="btn-icon" id="generateBtn">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="currentColor">
+                                    <path d="M8 2a6 6 0 100 12A6 6 0 008 2zm0 10V4"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <textarea id="codeEditor" class="code-editor" placeholder="// Describe your diagram or paste code here...
+// Example for Graphviz:
+digraph G {
+  node [shape=box, style=filled, fillcolor=lightblue];
+  A -> B -> C;
+  A -> D;
+}"></textarea>
+                    </div>
+
+                    <!-- Preview Panel -->
+                    <div class="preview-panel">
+                        <div class="panel-header">
+                            <span>Preview</span>
+                            <div class="preview-actions">
+                                <button class="btn-icon" id="zoomIn">+</button>
+                                <button class="btn-icon" id="zoomOut">-</button>
+                                <button class="btn-icon" id="resetZoom">⟲</button>
+                            </div>
+                        </div>
+                        <div id="preview" class="preview-content">
+                            <div class="preview-placeholder">
+                                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" stroke="currentColor">
+                                    <rect x="8" y="8" width="48" height="48" rx="4" stroke-width="2"/>
+                                    <path d="M24 32h16M32 24v16" stroke-width="2"/>
+                                </svg>
+                                <p>Generate or paste code to see preview</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Claude Terminal Panel -->
+            <div class="terminal-panel" id="terminalPanel">
+                <div class="terminal-header">
+                    <div class="terminal-tabs">
+                        <button class="terminal-tab active">Claude Terminal</button>
+                        <button class="terminal-tab">Logs</button>
+                    </div>
+                    <button class="btn-icon" id="closeTerminal">×</button>
+                </div>
+                <div class="terminal-content">
+                    <div id="terminalOutput" class="terminal-output"></div>
+                    <div class="terminal-input-container">
+                        <span class="terminal-prompt">→</span>
+                        <input type="text" id="terminalInput" class="terminal-input" placeholder="Ask Claude to generate or modify diagrams...">
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Properties Panel -->
+        <aside class="properties-panel">
+            <div class="panel-section">
+                <h3>Diagram Properties</h3>
+                <div class="form-group">
+                    <label>Theme</label>
+                    <select class="select" id="themeSelect">
+                        <option value="dark">Dark</option>
+                        <option value="light">Light</option>
+                        <option value="linear">Linear</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Layout</label>
+                    <select class="select" id="layoutSelect">
+                        <option value="TB">Top to Bottom</option>
+                        <option value="LR">Left to Right</option>
+                        <option value="RL">Right to Left</option>
+                        <option value="BT">Bottom to Top</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Node Shape</label>
+                    <select class="select" id="shapeSelect">
+                        <option value="box">Box</option>
+                        <option value="ellipse">Ellipse</option>
+                        <option value="circle">Circle</option>
+                        <option value="diamond">Diamond</option>
+                        <option value="cylinder">Cylinder</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>AI Assistant</h3>
+                <div class="ai-prompts">
+                    <button class="prompt-btn">📊 Azure Architecture</button>
+                    <button class="prompt-btn">🔄 AWS Infrastructure</button>
+                    <button class="prompt-btn">🌐 Network Diagram</button>
+                    <button class="prompt-btn">📱 App Flow</button>
+                    <button class="prompt-btn">🗄️ Database Schema</button>
+                </div>
+            </div>
+
+            <div class="panel-section">
+                <h3>Export Options</h3>
+                <button class="btn btn-block">PNG</button>
+                <button class="btn btn-block">SVG</button>
+                <button class="btn btn-block">PDF</button>
+                <button class="btn btn-block">Draw.io</button>
+            </div>
+        </aside>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

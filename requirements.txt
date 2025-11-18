@@ -1,0 +1,17 @@
+# Kre8 Diagram Builder - Python Dependencies
+
+# Web Framework
+flask==3.0.0
+flask-cors==4.0.0
+
+# Diagram Generation
+graphviz==0.20.1
+
+# Claude AI Integration
+anthropic==0.40.0
+
+# WebSocket Support
+websockets==12.0
+
+# Utilities
+python-dotenv==1.0.0

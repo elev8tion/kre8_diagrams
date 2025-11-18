@@ -1,0 +1,371 @@
+
+
+
+Hello everyone. Have you ever spent
+hours creating architectural diagrams
+and someone comes and says that there
+are new infrastructure changes and can
+you update those diagrams or worse you
+inherit a project with no documentation
+and you need to figure out what's
+actually deployed.
+So these are all the problems which we
+are going to solve today. So today I'm
+going to show you how to automatically
+generate professional Azure architecture
+diagrams from your Terraform ARM or the
+bicep code within seconds. I'll be
+sticking to Azure but the same can be
+implemented for AWS and GCP2
+and let's be honest creating
+architectural diagram is painful. First
+it's time consuming you spend two to
+three hours in draw.io IO or visual
+where you will be dragging boxes,
+finding the right icons, connecting
+arrows, wherever you should be building
+the actual infrastructure.
+And second, you are always out of date.
+The moment you finish, your diagram is
+already outdated. Someone added a
+storage account, someone changed the
+VNET, now your diagram where you spent
+lot of hours is good for nothing. And
+another one is the inconsistent
+standards. Every team member creates the
+diagram differently. different colors,
+different layouts, different level of
+details
+and good luck maintaining the
+consistency. And the last one is the
+manual sync chaos. Now you have
+infrastructure as a code in terapform,
+arm or the bicep. You have actual
+resources deployed in Azure and you have
+the diagrams in PowerPoint or your word
+document or the PDF file or you have
+visual files. And the problem is these
+three sources of truth never match.
+What if I told you that you could
+generate the diagrams automatically from
+your code, update them in seconds when
+your infrastructure changes and it uses
+the real Azure icons and the proper
+conventions. That's exactly what we are
+going to build today. However, you would
+have seen many Python libraries or the
+different tools that can generate the
+architectural diagrams. But the problem
+is that they are usually in the image
+format like PNG or JPJ. And honestly,
+what are we going to do with those?
+These files are not editable. What we
+want is something you can edit very
+easily. For example, something that
+works inside your VS code itself without
+going to any external portal or external
+tool. You should be able to set
+everything up in VS Code. Press one
+button and the diagram appears. Now,
+what we are going to do is to create the
+diagrams in editable format so that
+draw.io extension can open them straight
+away. You can drag things around, adjust
+the icons, make quick changes exactly
+the way you want. It will generate
+almost 100% of the work for you. If
+you're not satisfied and you want to
+make small changes, you can just ask
+GitHub copilot or simply you can just
+click on the file. It'll open in draw.io
+extension and you can dra drag and drop
+the things and make the small changes.
+So now let's talk about the different
+use cases for DevOps engineer. Imagine
+you are onboarding a new team member.
+Instead of explaining the architecture
+for two hours, you can just run one
+command and there will be an
+architectural diagram explaining the
+whole infrastructure. For cloud
+architects, you are designing a solution
+for a client. You write the terapform
+code or the ARM template. You run the
+generator. Now you have professional
+diagram in front of you. If the customer
+asks, can you provide a network flow
+diagram and you don't even have the code
+then you can just provide the
+instructions and that will be done. No
+extra work is required
+and for compliance and audit purpose
+security like if you have a security
+audit next week you can generate the
+architectural diagrams immediately
+within minutes or I would say within
+seconds you can run it through your code
+and provide the prompt. So whatever you
+want to create and everything will be
+ready within seconds. Now let's discuss
+about the text tech which we are using
+in this lab today. So Python diagrams
+library which we are going to use. It's
+an open source library using which you
+can generate the different architecture
+diagrams. It has built-in Azure, AWS and
+GCP icons. Then we'll use the graph viz
+which is a rendering engine which
+converts the diagrams into the PGs or
+the image format or the dot format or
+SVG format. Then comes the graph viz to
+draw.io. So it's a converter that
+converts or turns the diagrams into
+editable draw.io files. So you can
+autogenerate almost 100% of the work and
+the fine-tuning or last some bit of
+changes you can do using the GitHub
+copilot or you can manually do it by
+clicking on the file which is draw.io
+compatible and when you use the
+extension it will open the file you can
+make the changes you can edit it the way
+you always do it and this will make
+things easy for you. So by end of the
+video you will know how to install and
+configure all the tools. Generate your
+first Azure architecture diagram from
+code pass terapform files or the bicep
+templates to visualize the deployment
+and export to draw.io for manual
+refinement and all the code which I'm
+going to show in this demo will be in
+the GitHub. So you can just find that in
+the description of this video.
+And one last thing now this is what we
+are doing manually. You can also
+integrate this into your CI/CD pipeline
+for auto deployment. So think about the
+scenario. You have made some changes.
+You have deployed the Terraform code and
+then there is one part where or one step
+where you can add this and automatically
+your confluence or your um or your
+documentation or the word document
+wherever you want to update it will
+update for you. It will create all the
+diagrams and it can update wherever you
+want. All right, enough talking. Let's
+build this together. I'm in the VS code
+now. And when you will go to the GitHub,
+you will see this folder structure. So
+the main structure is architectural
+diagrams.
+There are no diagrams right now. There
+are only two files. One is agents.mmd.
+Let me open in preview. So this is an
+instructions file for your agent. Now
+either you can use the GitHub copilot
+from here if you have signed up for this
+and if your organization allows
+otherwise you can use the agents
+directly from Azure AI foundry or your
+copilot studio you can integrate them
+here and then you can run the same
+thing. So what we want is instead of you
+creating the Python file or defining the
+diagrams the LLM should do it because
+the AI is an assistant for us. they will
+do the heavy lifting and you can just
+generate all those diagrams within
+seconds. So now these are the
+instructions that these are the
+different packages that have to be
+installed and how they have to be
+installed location
+and how your diagrams will look like
+what where it will be saved how you have
+to convert them and different like which
+colors you have to use. So the basic
+details however you can always change
+them either manually or just ask the
+copilot that okay change the
+instructions and it will do it for you.
+So for now what I'm going to do is
+okay before that there is a requirements
+file what has to be installed. So all
+these that will be taken care and there
+is another instructions file I have
+created. So I want to show you quick
+demos. I have provided different
+instructions that how my architecture
+should look like. So this is the case
+where you are in pre-sales and you have
+to define an architectural diagram or a
+highle design document for a customer.
+You just provide what we are going to
+create and it will create the diagram
+for you. So basic details which will
+connect with and I have provided more
+information like the layout rules but
+you don't have to and it will understand
+and then other is the bicep demo or the
+terraform demo. So these are the two
+different application. One is deployed
+through terapform another one is
+deployed through bicep. So let's start
+with our manual instructions. So I'm
+going to open GitHub copilot and ask is
+go to architectural diagrams
+folder and read instructions
+for you in agents MD file. And once that
+is done
+go to instructions
+dot MD file
+and create architectural diagrams for me
+just this much you have to write but
+before that copilot can set it up for
+you but let's do it manually by ourself.
+So let's go to architectural diagrams
+folder. We run Python virtual
+environments because when you're running
+Python it's it's always recommended to
+create the virtual environment so that
+all your packages and everything will
+remain in there. Now we have a virtual
+environment. Let's activate it. It's
+activated and then we install
+requirements.txt
+where all the packages will be
+installed.
+So it's installing all the packages.
+However, there is one dependency which
+is C++ build tools which you can do by
+installing the Visual Studio. There is
+an option and once that is done, it'll
+be all good. Now, it's installed
+and let's ask it to run.
+So, it's reading the files as you can
+see agents MD and then it'll read the
+instructions.
+Now, it understands the instructions and
+it's going to create it. Let's see. It's
+using
+Azure diagrams virtual environment. It's
+using that's good. It's activating it
+again, but that's all right. Just
+checking the version. Okay. Perfect.
+Now, it'll create the Python script for
+you.
+Okay. As you can see, Python script has
+created. And here is the script. And
+let's run it. Hopefully, it will not
+fail.
+Okay. Okay, it has made some mistake but
+it can fix it by itself.
+So it's checking what are the different
+libraries because when it's using the
+different diagrams it has to provide the
+specific names. So route tables uh it's
+not route table it's route tables. It
+has fixed it. Now that's the use of the
+LLM. It will take care of the basic
+things for you.
+Perfect. So it has created in three
+formats png dot and draw.io. So PNG it's
+by default it creates in PNG. Now
+because we have used um graph to
+draw.io. So it uses first it converts
+first it creates in dot format and from
+there it creates dot.io. But before that
+let's open the diagram. It looks good.
+Let me close this. Close this
+and zoom it for you. See check how
+beautifully it has designed all the
+lines everything
+and all the details are provided subnet
+details and now you can you can ask it
+to make the manual changes or just click
+here simple draw.io Click here
+and
+and here is a diagram.
+It's similar to how you open in in the
+browser. And if you have to make
+changes, for example, you don't want it
+to be here, just put it here. And it's
+not that just drag and drop works. You
+can make it work in a nicer way. For
+example, you click here. Okay. I want it
+to be outside
+and perfect. You can even add more
+shapes. You want to add this, you add it
+here. Like the way you do it properly,
+you can make changes now. And it's not
+that you have to make changes. You can
+ask the copilot that will create another
+Python script, update those changes and
+they will update the diagram itself. But
+if it's a minor change, you don't want
+to recreate everything and it can be
+done. This is through the instructions.
+Let's quickly check another option. Um
+there is a terapform code. It can read
+the terapform code. There's a single
+file. However, the bicep is a little
+big. So let's check the bicep one.
+It's just checking whether it's not it's
+created or not. But let's
+go to bicep demo folder and understand
+my code in detail and create diagram for
+me
+just this much. Now the LLM will go read
+all the files understand it and it will
+create. So now it's reading all the
+bicep files.
+So it's checking because I have uh from
+the Azure samples quick start template
+repository this is and it's reading the
+details from here. So it's a 3TR
+architecture issql demo.
+Now it's reading the main.bicep file
+which is a big file as you can see.
+So it's reading all those and I think
+it's almost ready. It will generate a
+Python script for you which once run
+will will create the diagram for you.
+Okay. As you can see the Python script
+is created where it define different
+colors background color how it's
+connected where first it's defining the
+different which are used and then the
+different edges how they will be
+connected and everything all those
+details and then it's converting here.
+So let's run it. Hopefully it will run
+without any error. And perfect. It just
+ran. And let's see whether it's good or
+not.
+Looks good actually. And yes, it has a
+three-tier architecture.
+And this is first the front end, then
+the middle tier, and then the back end.
+And if you want to change it, you can
+you can just go here
+and make the changes. You don't want it
+here. Here add something, add the text,
+whatever you can do or edit the text
+here. You can make all the changes
+whichever you want like the way you do
+in the draw.io. So now creating diagram
+is no more a nightmare and you're not
+paying anything. It's completely free.
+It's open source. What you have to do is
+just open the VS code. If you have a
+visual st if you have a GitHub copilot,
+things are done for you. Perfect. And
+usually you can sign up for free or uh
+or you can use the agents directly from
+Azure AI agent service u you can
+integrate it or using the copilot studio
+which most of the organizations are now
+integrating. So it's easy for you to
+create the diagrams.

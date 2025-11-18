@@ -318,7 +318,7 @@ classDiagram
   Start [label="✨ Custom Diagram", fillcolor="#5E6AD2:#7B68EE"];
   Claude [label="💬 Ask Claude Code", fillcolor="#26B5CE:#00D084"];
 
-  Start -> Claude [label="Describe your diagram"];
+  Start -> Claude;
 }`
     };
 

@@ -153,16 +153,17 @@ class DiagramBuilder {
     const templates = {
       architecture: `digraph Architecture {
   rankdir=TB;
-  node [shape=box, style="rounded,filled", fillcolor="#5E6AD2", fontcolor=white];
-  edge [color="#26B5CE"];
+  graph [fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica"];
+  node [shape=box, style="rounded,filled", fillcolor="#5E6AD2:#26B5CE", gradientangle=90, fontcolor=white, fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", margin=0.3, penwidth=0];
+  edge [color="#26B5CE", penwidth=2.5, arrowsize=0.8];
 
-  User [label="👤 User"];
-  LB [label="⚖️ Load Balancer"];
-  Web1 [label="🌐 Web Server 1"];
-  Web2 [label="🌐 Web Server 2"];
-  App [label="⚙️ Application"];
-  DB [label="🗄️ Database"];
-  Cache [label="📦 Redis Cache"];
+  User [label="👤 User", fillcolor="#5E6AD2:#7B68EE"];
+  LB [label="⚖️ Load Balancer", fillcolor="#26B5CE:#00D084"];
+  Web1 [label="🌐 Web Server 1", fillcolor="#5E6AD2:#26B5CE"];
+  Web2 [label="🌐 Web Server 2", fillcolor="#5E6AD2:#26B5CE"];
+  App [label="⚙️ Application", fillcolor="#FFB224:#FF6B6B"];
+  DB [label="🗄️ Database", fillcolor="#7B68EE:#5E6AD2"];
+  Cache [label="📦 Redis Cache", fillcolor="#00D084:#26B5CE"];
 
   User -> LB;
   LB -> Web1;
@@ -172,7 +173,8 @@ class DiagramBuilder {
   App -> Cache;
   App -> DB;
 }`,
-      flowchart: `graph TD
+      flowchart: `%%{init: {'theme':'dark', 'themeVariables': {'primaryColor':'#5E6AD2','primaryTextColor':'#fff','lineColor':'#26B5CE','secondaryColor':'#FFB224','tertiaryColor':'#00D084'}}}%%
+graph TD
     A[Start] --> B{Decision Point}
     B -->|Yes| C[Process 1]
     B -->|No| D[Process 2]
@@ -180,10 +182,15 @@ class DiagramBuilder {
     D --> E
     E --> F[End]
 
-    style A fill:#5E6AD2,color:#fff
-    style F fill:#00D084,color:#fff
-    style B fill:#FFB224,color:#fff`,
-      sequence: `sequenceDiagram
+    style A fill:#5E6AD2,stroke:#7B68EE,stroke-width:3px,color:#fff
+    style F fill:#00D084,stroke:#26B5CE,stroke-width:3px,color:#fff
+    style B fill:#FFB224,stroke:#FF6B6B,stroke-width:3px,color:#fff
+    style C fill:#26B5CE,stroke:#00D084,stroke-width:2px,color:#fff
+    style D fill:#26B5CE,stroke:#00D084,stroke-width:2px,color:#fff
+    style E fill:#7B68EE,stroke:#5E6AD2,stroke-width:2px,color:#fff
+    linkStyle default stroke:#26B5CE,stroke-width:2.5px`,
+      sequence: `%%{init: {'theme':'dark', 'themeVariables': {'primaryColor':'#5E6AD2','primaryTextColor':'#fff','lineColor':'#26B5CE','actorBkg':'#5E6AD2','actorBorder':'#7B68EE','activationBkgColor':'#26B5CE','activationBorderColor':'#00D084'}}}%%
+sequenceDiagram
     participant User
     participant Frontend
     participant API
@@ -195,7 +202,8 @@ class DiagramBuilder {
     Database-->>API: User Data
     API-->>Frontend: JWT Token
     Frontend-->>User: Success`,
-      erd: `erDiagram
+      erd: `%%{init: {'theme':'dark', 'themeVariables': {'primaryColor':'#5E6AD2','primaryTextColor':'#fff','lineColor':'#26B5CE'}}}%%
+erDiagram
     CUSTOMER ||--o{ ORDER : places
     ORDER ||--|{ LINE_ITEM : contains
     PRODUCT ||--o{ LINE_ITEM : "ordered in"
@@ -225,7 +233,8 @@ class DiagramBuilder {
         float price
         string category
     }`,
-      network: `graph TB
+      network: `%%{init: {'theme':'dark', 'themeVariables': {'primaryColor':'#5E6AD2','primaryTextColor':'#fff','lineColor':'#26B5CE'}}}%%
+graph TB
     Internet((🌍 Internet))
     Router[🔀 Router]
     Firewall[🛡️ Firewall]
@@ -245,10 +254,18 @@ class DiagramBuilder {
     Switch --> PC1
     Switch --> PC2
 
-    style Internet fill:#26B5CE,color:#fff
-    style Firewall fill:#FF6B6B,color:#fff
-    style DB fill:#5E6AD2,color:#fff`,
-      uml: `classDiagram
+    style Internet fill:#26B5CE,stroke:#00D084,stroke-width:3px,color:#fff
+    style Firewall fill:#FF6B6B,stroke:#FFB224,stroke-width:3px,color:#fff
+    style DB fill:#5E6AD2,stroke:#7B68EE,stroke-width:3px,color:#fff
+    style Router fill:#FFB224,stroke:#FF6B6B,stroke-width:2px,color:#fff
+    style Switch fill:#00D084,stroke:#26B5CE,stroke-width:2px,color:#fff
+    style Server1 fill:#7B68EE,stroke:#5E6AD2,stroke-width:2px,color:#fff
+    style Server2 fill:#7B68EE,stroke:#5E6AD2,stroke-width:2px,color:#fff
+    style PC1 fill:#26B5CE,stroke:#00D084,stroke-width:2px,color:#fff
+    style PC2 fill:#26B5CE,stroke:#00D084,stroke-width:2px,color:#fff
+    linkStyle default stroke:#26B5CE,stroke-width:2.5px`,
+      uml: `%%{init: {'theme':'dark', 'themeVariables': {'primaryColor':'#5E6AD2','primaryTextColor':'#fff','lineColor':'#26B5CE'}}}%%
+classDiagram
     class User {
         +int id
         +string name

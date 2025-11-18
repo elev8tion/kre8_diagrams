@@ -209,7 +209,7 @@ class DiagramBuilder {
       architecture: `digraph Architecture {
   rankdir=TB;
   graph [fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", bgcolor="transparent"];
-  node [shape=box, style="rounded", fillcolor="none", fontcolor=white, fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", margin=0.3, penwidth=2];
+  node [shape=box, style="rounded", fillcolor="#0D0E1100", fontcolor=white, fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", margin=0.3, penwidth=2];
   edge [color="#26B5CE", penwidth=2.5, arrowsize=0.8];
 
   User [label="👤 User", color="#5E6AD2:#7B68EE", gradientangle=90];
@@ -359,7 +359,7 @@ classDiagram
       custom: `digraph Custom {
   rankdir=TB;
   graph [fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", bgcolor="transparent"];
-  node [shape=box, style="rounded", fillcolor="none", fontcolor=white, fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", margin=0.3, penwidth=2];
+  node [shape=box, style="rounded", fillcolor="#0D0E1100", fontcolor=white, fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", margin=0.3, penwidth=2];
   edge [color="#26B5CE", penwidth=2.5, arrowsize=0.8];
 
   // Start building your custom diagram here

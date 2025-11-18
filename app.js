@@ -62,17 +62,19 @@ class DiagramBuilder {
       });
     });
 
-    // Terminal toggle
-    const terminalToggle = document.getElementById('terminalToggle');
-    const terminalPanel = document.getElementById('terminalPanel');
-    const closeTerminal = document.getElementById('closeTerminal');
+    // Right panel tab switching
+    document.querySelectorAll('.right-panel-tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        const view = tab.dataset.view;
 
-    terminalToggle.addEventListener('click', () => {
-      terminalPanel.classList.toggle('active');
-    });
+        // Update active tab
+        document.querySelectorAll('.right-panel-tab').forEach(t => t.classList.remove('active'));
+        tab.classList.add('active');
 
-    closeTerminal.addEventListener('click', () => {
-      terminalPanel.classList.remove('active');
+        // Update active view
+        document.querySelectorAll('.right-panel-view').forEach(v => v.classList.remove('active'));
+        document.querySelector(`.right-panel-view[data-view="${view}"]`).classList.add('active');
+      });
     });
 
     // Terminal input
@@ -374,16 +376,7 @@ classDiagram
     const output = document.getElementById('terminalOutput');
     const message = document.createElement('div');
     message.className = `terminal-message ${type}`;
-
-    const timestamp = new Date().toLocaleTimeString();
-    message.innerHTML = `
-      <div style="display: flex; justify-content: space-between; margin-bottom: 4px;">
-        <span style="font-weight: 600;">${type.toUpperCase()}</span>
-        <span style="color: var(--text-tertiary); font-size: 11px;">${timestamp}</span>
-      </div>
-      <div style="white-space: pre-wrap;">${content}</div>
-    `;
-
+    message.textContent = content;
     output.appendChild(message);
     output.scrollTop = output.scrollHeight;
   }

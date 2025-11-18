@@ -574,6 +574,7 @@ body {
   position: relative;
   cursor: default;
   transition: cursor 0.15s ease;
+  touch-action: none; /* Enable touch gestures */
 }
 
 .preview-wrapper.panning {
@@ -584,14 +585,24 @@ body {
   cursor: grab;
 }
 
+/* Space bar panning cursor */
+.preview-wrapper.space-active {
+  cursor: grab !important;
+}
+
+.preview-wrapper.space-active.panning {
+  cursor: grabbing !important;
+}
+
 .preview-wrapper img {
   display: block;
   max-width: none;
   height: auto;
-  transition: transform 0.2s ease;
+  transition: none; /* Disable CSS transition, use JS animation instead */
   transform-origin: center center;
   user-select: none;
   -webkit-user-drag: none;
+  pointer-events: none; /* Prevent image drag interference */
 }
 
 /* Grid Overlay */

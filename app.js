@@ -14,6 +14,16 @@ class DiagramBuilder {
     this.gridEnabled = false;
     this.isFullscreen = false;
 
+    // Enhanced pan/zoom properties
+    this.velocity = { x: 0, y: 0 };
+    this.momentumFrame = null;
+    this.dragHistory = [];
+    this.spacePressed = false;
+    this.touches = [];
+    this.initialPinchDistance = 0;
+    this.initialPinchZoom = 1;
+    this.zoomAnimationFrame = null;
+
     this.init();
   }
 
@@ -162,6 +172,15 @@ class DiagramBuilder {
 
     // Keyboard shortcuts
     document.addEventListener('keydown', (e) => this.handleKeyboardShortcuts(e));
+
+    // Space bar panning
+    document.addEventListener('keydown', (e) => this.handleSpaceDown(e));
+    document.addEventListener('keyup', (e) => this.handleSpaceUp(e));
+
+    // Touch events for pinch zoom
+    previewWrapper.addEventListener('touchstart', (e) => this.handleTouchStart(e), { passive: false });
+    previewWrapper.addEventListener('touchmove', (e) => this.handleTouchMove(e), { passive: false });
+    previewWrapper.addEventListener('touchend', (e) => this.handleTouchEnd(e));
 
     // Shortcuts overlay
     document.getElementById('closeShortcuts').addEventListener('click', () => {
@@ -504,11 +523,62 @@ classDiagram
     wrapper.classList.remove('pannable');
   }
 
-  adjustZoom(delta) {
+  adjustZoom(delta, centerX = null, centerY = null) {
     const newZoom = Math.max(10, Math.min(200, (this.zoom * 100) + delta));
-    this.zoom = newZoom / 100;
-    document.getElementById('zoomSlider').value = newZoom;
-    this.updatePreviewZoom();
+    this.animateZoom(newZoom / 100, centerX, centerY);
+  }
+
+  animateZoom(targetZoom, centerX = null, centerY = null) {
+    // Cancel any ongoing zoom animation
+    if (this.zoomAnimationFrame) {
+      cancelAnimationFrame(this.zoomAnimationFrame);
+    }
+
+    const startZoom = this.zoom;
+    const startPanX = this.panX;
+    const startPanY = this.panY;
+    const duration = 250;
+    const startTime = Date.now();
+
+    // Calculate zoom origin point
+    let targetPanX = this.panX;
+    let targetPanY = this.panY;
+
+    if (centerX !== null && centerY !== null) {
+      // Zoom toward cursor position
+      const wrapper = document.getElementById('previewWrapper');
+      const rect = wrapper.getBoundingClientRect();
+      const relativeX = centerX - rect.left - rect.width / 2;
+      const relativeY = centerY - rect.top - rect.height / 2;
+
+      // Adjust pan to keep point under cursor fixed
+      const zoomRatio = targetZoom / startZoom;
+      targetPanX = relativeX - (relativeX - this.panX) * zoomRatio;
+      targetPanY = relativeY - (relativeY - this.panY) * zoomRatio;
+    }
+
+    const animate = () => {
+      const elapsed = Date.now() - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+
+      this.zoom = startZoom + (targetZoom - startZoom) * eased;
+      this.panX = startPanX + (targetPanX - startPanX) * eased;
+      this.panY = startPanY + (targetPanY - startPanY) * eased;
+
+      document.getElementById('zoomSlider').value = Math.round(this.zoom * 100);
+      this.updatePreviewZoom();
+
+      if (progress < 1) {
+        this.zoomAnimationFrame = requestAnimationFrame(animate);
+      } else {
+        this.zoomAnimationFrame = null;
+        // Apply bounds after zoom animation
+        this.snapToBounds();
+      }
+    };
+
+    animate();
   }
 
   updatePreviewZoom() {
@@ -517,16 +587,17 @@ classDiagram
 
     const img = document.querySelector('#previewWrapper img');
     if (img) {
-      img.style.transform = `scale(${this.zoom}) translate(${this.panX}px, ${this.panY}px)`;
+      // CRITICAL FIX: Apply translate BEFORE scale (standard pan/zoom pattern)
+      // This prevents the jumping behavior
+      img.style.transform = `translate(${this.panX}px, ${this.panY}px) scale(${this.zoom})`;
+      img.style.transformOrigin = '0 0'; // Always transform from top-left
     }
   }
 
   resetZoom() {
-    this.zoom = 1;
+    this.animateZoom(1);
     this.panX = 0;
     this.panY = 0;
-    document.getElementById('zoomSlider').value = 100;
-    this.updatePreviewZoom();
   }
 
   fitToScreen() {
@@ -543,11 +614,9 @@ classDiagram
     const scaleY = wrapperHeight / imgHeight;
     const scale = Math.min(scaleX, scaleY, 2) * 0.9;
 
-    this.zoom = scale;
     this.panX = 0;
     this.panY = 0;
-    document.getElementById('zoomSlider').value = Math.round(scale * 100);
-    this.updatePreviewZoom();
+    this.animateZoom(scale);
   }
 
   handleWheelZoom(e) {
@@ -555,18 +624,26 @@ classDiagram
     e.preventDefault();
 
     const delta = e.deltaY > 0 ? -10 : 10;
-    this.adjustZoom(delta);
+    // Zoom toward cursor position
+    this.adjustZoom(delta, e.clientX, e.clientY);
   }
 
-  // Pan functionality
+  // Pan functionality with momentum and bounds
   startPan(e) {
-    if (e.button !== 0) return; // Only left mouse button
+    if (e.button !== 0 && !this.spacePressed) return; // Left mouse button or space bar
     const img = document.querySelector('#previewWrapper img');
     if (!img) return;
+
+    // Cancel any ongoing momentum
+    if (this.momentumFrame) {
+      cancelAnimationFrame(this.momentumFrame);
+      this.momentumFrame = null;
+    }
 
     this.isPanning = true;
     this.startX = e.clientX - this.panX;
     this.startY = e.clientY - this.panY;
+    this.dragHistory = [{ x: e.clientX, y: e.clientY, time: Date.now() }];
     document.getElementById('previewWrapper').classList.add('panning');
   }
 
@@ -574,14 +651,249 @@ classDiagram
     if (!this.isPanning) return;
     e.preventDefault();
 
+    // Simple direct panning - no rubber-band, no bounds checking during drag
     this.panX = e.clientX - this.startX;
     this.panY = e.clientY - this.startY;
+
+    // Track drag history for momentum (keep last 5 positions)
+    this.dragHistory.push({ x: e.clientX, y: e.clientY, time: Date.now() });
+    if (this.dragHistory.length > 5) {
+      this.dragHistory.shift();
+    }
+
     this.updatePreviewZoom();
   }
 
   endPan() {
     this.isPanning = false;
     document.getElementById('previewWrapper').classList.remove('panning');
+
+    // Calculate velocity from drag history for momentum
+    if (this.dragHistory.length >= 2) {
+      const recent = this.dragHistory[this.dragHistory.length - 1];
+      const previous = this.dragHistory[0];
+      const timeDelta = recent.time - previous.time;
+
+      if (timeDelta > 0 && timeDelta < 100) { // Only if drag was recent and fast
+        this.velocity.x = (recent.x - previous.x) / timeDelta * 16; // Normalize to 60fps
+        this.velocity.y = (recent.y - previous.y) / timeDelta * 16;
+
+        // Start momentum animation if velocity is significant
+        const speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+        if (speed > 1) { // Higher threshold - only for really fast drags
+          this.applyMomentum();
+        }
+      }
+    }
+
+    // NO snap-to-bounds - let user pan freely
+    this.dragHistory = [];
+  }
+
+  applyRubberBand(value, min, max) {
+    if (value < min) {
+      const delta = min - value;
+      return min - delta * 0.3; // Resistance factor
+    } else if (value > max) {
+      const delta = value - max;
+      return max + delta * 0.3;
+    }
+    return value;
+  }
+
+  getBounds() {
+    const wrapper = document.getElementById('previewWrapper');
+    const img = document.querySelector('#previewWrapper img');
+
+    if (!img) return { minX: 0, maxX: 0, minY: 0, maxY: 0 };
+
+    const wrapperWidth = wrapper.clientWidth;
+    const wrapperHeight = wrapper.clientHeight;
+    const scaledWidth = img.naturalWidth * this.zoom;
+    const scaledHeight = img.naturalHeight * this.zoom;
+
+    // Allow some panning even when zoomed out
+    const maxX = Math.max(0, (scaledWidth - wrapperWidth) / 2 + 50);
+    const maxY = Math.max(0, (scaledHeight - wrapperHeight) / 2 + 50);
+
+    return {
+      minX: -maxX,
+      maxX: maxX,
+      minY: -maxY,
+      maxY: maxY
+    };
+  }
+
+  applyMomentum() {
+    const friction = 0.92; // Higher friction - stops faster
+    const threshold = 0.5; // Higher threshold - stops sooner
+
+    const animate = () => {
+      // Apply friction
+      this.velocity.x *= friction;
+      this.velocity.y *= friction;
+
+      // Update pan position
+      this.panX += this.velocity.x;
+      this.panY += this.velocity.y;
+
+      // NO bounds checking - let it drift freely
+
+      this.updatePreviewZoom();
+
+      // Continue animation if velocity is significant
+      const speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+      if (speed > threshold) {
+        this.momentumFrame = requestAnimationFrame(animate);
+      } else {
+        this.velocity = { x: 0, y: 0 };
+        this.momentumFrame = null;
+      }
+    };
+
+    this.momentumFrame = requestAnimationFrame(animate);
+  }
+
+  snapToBounds() {
+    // DISABLED - no snapping, let user pan freely
+    return;
+
+    const bounds = this.getBounds();
+
+    if (this.panX < bounds.minX || this.panX > bounds.maxX ||
+        this.panY < bounds.minY || this.panY > bounds.maxY) {
+
+      const targetX = Math.max(bounds.minX, Math.min(bounds.maxX, this.panX));
+      const targetY = Math.max(bounds.minY, Math.min(bounds.maxY, this.panY));
+
+      // Animate snap back
+      const startX = this.panX;
+      const startY = this.panY;
+      const duration = 300;
+      const startTime = Date.now();
+
+      const animate = () => {
+        const elapsed = Date.now() - startTime;
+        const progress = Math.min(elapsed / duration, 1);
+        const eased = 1 - Math.pow(1 - progress, 3); // easeOutCubic
+
+        this.panX = startX + (targetX - startX) * eased;
+        this.panY = startY + (targetY - startY) * eased;
+        this.updatePreviewZoom();
+
+        if (progress < 1) {
+          requestAnimationFrame(animate);
+        }
+      };
+
+      animate();
+    }
+  }
+
+  // Space bar panning handlers
+  handleSpaceDown(e) {
+    if (e.code === 'Space' && !e.repeat && !document.activeElement.matches('input, textarea')) {
+      e.preventDefault();
+      this.spacePressed = true;
+      const wrapper = document.getElementById('previewWrapper');
+      wrapper.classList.add('space-active');
+    }
+  }
+
+  handleSpaceUp(e) {
+    if (e.code === 'Space') {
+      this.spacePressed = false;
+      const wrapper = document.getElementById('previewWrapper');
+      wrapper.classList.remove('space-active');
+    }
+  }
+
+  // Touch and pinch zoom handlers
+  handleTouchStart(e) {
+    const img = document.querySelector('#previewWrapper img');
+    if (!img) return;
+
+    this.touches = Array.from(e.touches);
+
+    if (this.touches.length === 2) {
+      // Pinch zoom
+      e.preventDefault();
+      this.initialPinchDistance = this.calculatePinchDistance(this.touches[0], this.touches[1]);
+      this.initialPinchZoom = this.zoom;
+    } else if (this.touches.length === 1) {
+      // Single finger pan
+      const touch = this.touches[0];
+      this.isPanning = true;
+      this.startX = touch.clientX - this.panX;
+      this.startY = touch.clientY - this.panY;
+      this.dragHistory = [{ x: touch.clientX, y: touch.clientY, time: Date.now() }];
+    }
+  }
+
+  handleTouchMove(e) {
+    if (this.touches.length === 2 && e.touches.length === 2) {
+      // Pinch zoom
+      e.preventDefault();
+      const currentDistance = this.calculatePinchDistance(e.touches[0], e.touches[1]);
+      const scale = currentDistance / this.initialPinchDistance;
+      const newZoom = Math.max(0.1, Math.min(2, this.initialPinchZoom * scale));
+
+      this.zoom = newZoom;
+      document.getElementById('zoomSlider').value = Math.round(newZoom * 100);
+      this.updatePreviewZoom();
+    } else if (this.isPanning && e.touches.length === 1) {
+      // Single finger pan
+      e.preventDefault();
+      const touch = e.touches[0];
+
+      const newPanX = touch.clientX - this.startX;
+      const newPanY = touch.clientY - this.startY;
+
+      const bounds = this.getBounds();
+      this.panX = this.applyRubberBand(newPanX, bounds.minX, bounds.maxX);
+      this.panY = this.applyRubberBand(newPanY, bounds.minY, bounds.maxY);
+
+      this.dragHistory.push({ x: touch.clientX, y: touch.clientY, time: Date.now() });
+      if (this.dragHistory.length > 5) {
+        this.dragHistory.shift();
+      }
+
+      this.updatePreviewZoom();
+    }
+  }
+
+  handleTouchEnd(e) {
+    if (e.touches.length === 0) {
+      // All touches ended
+      if (this.isPanning && this.dragHistory.length >= 2) {
+        // Apply momentum
+        const recent = this.dragHistory[this.dragHistory.length - 1];
+        const previous = this.dragHistory[0];
+        const timeDelta = recent.time - previous.time;
+
+        if (timeDelta > 0 && timeDelta < 100) {
+          this.velocity.x = (recent.x - previous.x) / timeDelta * 16;
+          this.velocity.y = (recent.y - previous.y) / timeDelta * 16;
+
+          const speed = Math.sqrt(this.velocity.x ** 2 + this.velocity.y ** 2);
+          if (speed > 0.5) {
+            this.applyMomentum();
+          }
+        }
+      }
+
+      this.isPanning = false;
+      this.snapToBounds();
+      this.dragHistory = [];
+    }
+
+    this.touches = Array.from(e.touches);
+  }
+
+  calculatePinchDistance(touch1, touch2) {
+    const dx = touch2.clientX - touch1.clientX;
+    const dy = touch2.clientY - touch1.clientY;
+    return Math.sqrt(dx * dx + dy * dy);
   }
 
   // Grid overlay

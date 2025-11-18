@@ -66,6 +66,9 @@ body {
 .nav {
   flex: 1;
   overflow-y: auto;
+  /* Smooth momentum scrolling */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 .nav-section {
@@ -277,6 +280,9 @@ body {
   line-height: 1.6;
   resize: none;
   outline: none;
+  /* Smooth momentum scrolling */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
 }
 
 .code-editor::placeholder {
@@ -496,6 +502,14 @@ body {
 ::-webkit-scrollbar-thumb {
   background: var(--border-secondary);
   border-radius: 4px;
+  /* Smooth scrollbar dragging */
+  transition: background 0.2s ease;
+}
+
+/* Smooth scroll for all scrollable elements */
+* {
+  scroll-behavior: smooth;
+  -webkit-overflow-scrolling: touch;
 }
 
 ::-webkit-scrollbar-thumb:hover {

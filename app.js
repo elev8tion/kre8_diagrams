@@ -143,7 +143,8 @@ class DiagramBuilder {
       sequence: 'mermaid',
       erd: 'mermaid',
       network: 'mermaid',
-      uml: 'mermaid'
+      uml: 'mermaid',
+      custom: 'graphviz'
     };
 
     const format = formatMap[type] || 'graphviz';
@@ -300,7 +301,25 @@ classDiagram
 
     User "1" --> "*" Order : places
     Order "*" --> "*" Product : contains
-    Order "1" --> "1" Payment : has`
+    Order "1" --> "1" Payment : has`,
+      custom: `digraph Custom {
+  rankdir=TB;
+  graph [fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica"];
+  node [shape=box, style="rounded,filled", fillcolor="#5E6AD2:#26B5CE", gradientangle=90, fontcolor=white, fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", margin=0.3, penwidth=0];
+  edge [color="#26B5CE", penwidth=2.5, arrowsize=0.8];
+
+  // Start building your custom diagram here
+  // You can describe any type of diagram to Claude Code in the terminal
+  // Examples:
+  // - "Create a diagram showing X"
+  // - "Add nodes A, B, C with connections"
+  // - "Generate a flowchart for Y process"
+
+  Start [label="✨ Custom Diagram", fillcolor="#5E6AD2:#7B68EE"];
+  Claude [label="💬 Ask Claude Code", fillcolor="#26B5CE:#00D084"];
+
+  Start -> Claude [label="Describe your diagram"];
+}`
     };
 
     document.getElementById('codeEditor').value = templates[type] || '';

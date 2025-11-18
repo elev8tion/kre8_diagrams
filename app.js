@@ -208,17 +208,17 @@ class DiagramBuilder {
     const templates = {
       architecture: `digraph Architecture {
   rankdir=TB;
-  graph [fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica"];
-  node [shape=box, style="rounded,filled", fillcolor="#5E6AD2:#26B5CE", gradientangle=90, fontcolor=white, fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", margin=0.3, penwidth=0];
+  graph [fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", bgcolor="transparent"];
+  node [shape=box, style="rounded", fillcolor="none", fontcolor=white, fontname="SF Pro Display, -apple-system, Segoe UI, Helvetica", margin=0.3, penwidth=2];
   edge [color="#26B5CE", penwidth=2.5, arrowsize=0.8];
 
-  User [label="👤 User", fillcolor="#5E6AD2:#7B68EE"];
-  LB [label="⚖️ Load Balancer", fillcolor="#26B5CE:#00D084"];
-  Web1 [label="🌐 Web Server 1", fillcolor="#5E6AD2:#26B5CE"];
-  Web2 [label="🌐 Web Server 2", fillcolor="#5E6AD2:#26B5CE"];
-  App [label="⚙️ Application", fillcolor="#FFB224:#FF6B6B"];
-  DB [label="🗄️ Database", fillcolor="#7B68EE:#5E6AD2"];
-  Cache [label="📦 Redis Cache", fillcolor="#00D084:#26B5CE"];
+  User [label="👤 User", color="#5E6AD2:#7B68EE", gradientangle=90];
+  LB [label="⚖️ Load Balancer", color="#26B5CE:#00D084", gradientangle=90];
+  Web1 [label="🌐 Web Server 1", color="#5E6AD2:#26B5CE", gradientangle=90];
+  Web2 [label="🌐 Web Server 2", color="#5E6AD2:#26B5CE", gradientangle=90];
+  App [label="⚙️ Application", color="#FFB224:#FF6B6B", gradientangle=90];
+  DB [label="🗄️ Database", color="#7B68EE:#5E6AD2", gradientangle=90];
+  Cache [label="📦 Redis Cache", color="#00D084:#26B5CE", gradientangle=90];
 
   User -> LB;
   LB -> Web1;
